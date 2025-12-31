@@ -3,53 +3,96 @@
 sudo apt update -qq
 sudo apt install -y -qq zip unzip wget curl
 
-cd ..
-mkdir -p server
-cd server
+# Crear carpeta de servidor si no existe:
+mkdir -p ~/server
+cd ~/server
 
-# -- EDIT HERE | DO NOT EDIT ABOVE -- #
-BEDROCK_VERSION=latest # LEAVE THIS PART ALONE (If you want to play on a different version, it's based on Minecraft Version)
-LD_LIBRARY_PATH=. # LEAVE THIS PART ALONE
-SERVERNAME=Bedrock Dedicated Server # ANYTHING YOU LIKE TO NAME
-GAMEMODE=survival # GAMEMODE: survival,creative,adventure
-DIFFICULTY=easy # DIFFICULTY: peaceful,easy,normal,hard
-CHEATS=false # CHEATS: true,false
-# -- EDIT HERE | DO NOT EDIT BELOW -- #
+# ======================================== #
+# ========== CONFIGURACIÓN =============== #
+# ======================================== #
+BEDROCK_VERSION="latest"
+SERVERNAME="Bedrock Dedicated Server"
+GAMEMODE="survival"
+DIFFICULTY="easy"
+CHEATS="false"
+
+# ======================================== #
+# ====== DESCARGA DEL SERVIDOR BDS ======= #
+# ======================================== #
 
 RANDVERSION=$(echo $((1 + $RANDOM % 4000)))
 
-if [ -z "${BEDROCK_VERSION}" ] || [ "${BEDROCK_VERSION}" == "latest" ]; then
-    echo -e "\n Downloading latest Bedrock server"
-    curl -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.$RANDVERSION.212 Safari/537.36" -H "Accept-Language: en" -H "Accept-Encoding: gzip, deflate" -o versions.html.gz https://www.minecraft.net/en-us/download/server/bedrock
-    DOWNLOAD_URL=$(zgrep -o 'https://minecraft.azureedge.net/bin-linux/[^"]*' versions.html.gz)
-else 
-    echo -e "\n Downloading ${BEDROCK_VERSION} Bedrock server"
-    DOWNLOAD_URL=https://www.minecraft.net/bedrockdedicatedserver/bin-linux/bedrock-server-1.21.131.1.zip
+if [ "$BEDROCK_VERSION" == "latest" ]; then
+    echo -e "\n🔍 Descargando última versión de Bedrock Server..."
+    curl -sL \
+        -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" \
+        -o versions.html.gz \
+        "https://www.minecraft.net/en-us/download/server/bedrock"
+
+    DOWNLOAD_URL=$(zgrep -o 'https://minecraft.azureedge.net/bin-linux/[^"]*' versions.html.gz | head -1)
+
+    if [ -z "$DOWNLOAD_URL" ]; then
+        echo "❌ ERROR: No se pudo obtener la URL de descarga."
+        exit 1
+    fi
+else
+    echo -e "\n Descargando version específica: $BEDROCK_VERSION"
+    DOWNLOAD_URL="https://minecraft.azureedge.net/bin-linux/$BEDROCK_VERSION.zip"
 fi
 
-DOWNLOAD_FILE=$(echo ${DOWNLOAD_URL} | cut -d"/" -f5) # Retrieve archive name
+DOWNLOAD_FILE=$(basename "$DOWNLOAD_URL")
 
-echo -e "backing up config files"
-rm *.bak versions.html.gz
-cp server.properties server.properties.bak
-cp permissions.json permissions.json.bak
-cp whitelist.json whitelist.json.bak
+# ======================================== #
+# ========== BACKUP DE ARCHIVOS ========== #
+# ======================================== #
 
-echo -e "Downloading files from: $DOWNLOAD_URL"
+echo "📦 Realizando respaldos..."
+[ -f server.properties ] && cp server.properties server.properties.bak
+[ -f permissions.json ] && cp permissions.json permissions.json.bak
+[ -f whitelist.json ] && cp whitelist.json whitelist.json.bak
 
-curl -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.$RANDVERSION.212 Safari/537.36" -H "Accept-Language: en" -o $DOWNLOAD_FILE $DOWNLOAD_URL
+rm -f versions.html.gz
 
-echo -e "Unpacking server files"
-unzip -o $DOWNLOAD_FILE
+echo "⬇ Descargando: $DOWNLOAD_URL"
+curl -sL -o "$DOWNLOAD_FILE" "$DOWNLOAD_URL"
 
-echo -e "Cleaning up after installing"
-rm $DOWNLOAD_FILE
+echo "📤 Extrayendo archivos..."
+unzip -o "$DOWNLOAD_FILE" >/dev/null
 
-echo -e "restoring backup config files - on first install there will be file not found errors which you can ignore."
-cp -rf server.properties.bak server.properties
-cp -rf permissions.json.bak permissions.json
-cp -rf whitelist.json.bak whitelist.json
+echo "🧹 Limpiando archivos..."
+rm -f "$DOWNLOAD_FILE"
+
+echo "♻ Restaurando configuración si existe..."
+[ -f server.properties.bak ] && cp server.properties.bak server.properties
+[ -f permissions.json.bak ] && cp permissions.json.bak permissions.json
+[ -f whitelist.json.bak ] && cp whitelist.json.bak whitelist.json
 
 chmod +x bedrock_server
 
-echo -e "Install Completed"
+echo "✅ Servidor Bedrock instalado correctamente."
+
+
+# ======================================== #
+# ======== INSTALAR PLAYIT.GG ============ #
+# ======================================== #
+
+echo "⬇ Instalando Playit.gg (última versión)..."
+
+wget -q "https://github.com/playit-cloud/playit-agent/releases/latest/download/playit-linux-amd64" -O playit
+chmod +x playit
+
+echo "✅ Playit.gg instalado correctamente."
+echo ""
+echo "🎉 Instalación completa."
+echo ""
+echo "-- ¿Deseas iniciar el servidor ahora? --"
+echo "1) Sí"
+echo "2) No"
+
+read -r opcion
+
+
+if [ "$opcion" == "1" ]; then
+    echo "Iniciando servidor..."
+    ./bedrock_server
+fi
