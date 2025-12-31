@@ -16,7 +16,6 @@ echo "Type [2] Create GoMint Server"
 echo "Type [3] Create Nukkit Server (Extra Steps needed)"
 echo "Type [4] Create PocketmineMP Server"
 
-
 choiceForServer=1
 read choiceForServer
 
@@ -60,6 +59,7 @@ elif [[ $choiceForServer == 4 ]]; then
     cd BedrockInstallScripts
     chmod +x *
     ./PocketmineInstall
+
 # Otherwise
 else
     echo "> By Default, you selected [1]"
@@ -72,9 +72,10 @@ fi
 # Backup install playit.gg in case if first one doesn't download
 echo "> Installing Playit.gg..."
 cd ..
-#wget "https://playit.gg/downloads/playit-linux_64-0.4.6" -O playit 
-wget -q "https://playit.gg/downloads/playit-0.8.1-beta" -O playit
-chmod +x playit
+
+# Método oficial: SIEMPRE descarga la última versión
+curl -SsL https://playit.gg/cli/install | bash
+
 echo "> Playit.gg Installation Completed!"
 echo ""
 echo "-- Do you want to start the server now? --"
