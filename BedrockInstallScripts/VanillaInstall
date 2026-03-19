@@ -1,7 +1,7 @@
 #!/bin/bash
 
 sudo apt update -qq
-sudo apt install -y -qq zip unzip wget curl
+sudo apt install -y -qq zip unzip wget curl gpg
 
 # Crear carpeta de servidor si no existe:
 mkdir -p ~/server
@@ -20,16 +20,14 @@ CHEATS="false"
 # ====== DESCARGA DEL SERVIDOR BDS ======= #
 # ======================================== #
 
-RANDVERSION=$(echo $((1 + $RANDOM % 4000)))
-
 if [ "$BEDROCK_VERSION" == "latest" ]; then
     echo -e "\n🔍 Descargando última versión de Bedrock Server..."
     curl -sL \
         -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" \
-        -o versions.html.gz \
+        -o versions.html \
         "https://www.minecraft.net/en-us/download/server/bedrock"
 
-    DOWNLOAD_URL=$(zgrep -o 'https://minecraft.azureedge.net/bin-linux/[^"]*' versions.html.gz | head -1)
+    DOWNLOAD_URL=$(grep -o 'https://minecraft.azureedge.net/bin-linux/[^"]*' versions.html | head -1)
 
     if [ -z "$DOWNLOAD_URL" ]; then
         echo "❌ ERROR: No se pudo obtener la URL de descarga."
@@ -51,7 +49,7 @@ echo "📦 Realizando respaldos..."
 [ -f permissions.json ] && cp permissions.json permissions.json.bak
 [ -f whitelist.json ] && cp whitelist.json whitelist.json.bak
 
-rm -f versions.html.gz
+rm -f versions.html
 
 echo "⬇ Descargando: $DOWNLOAD_URL"
 curl -sL -o "$DOWNLOAD_FILE" "$DOWNLOAD_URL"
@@ -71,17 +69,18 @@ chmod +x bedrock_server
 
 echo "✅ Servidor Bedrock instalado correctamente."
 
-
 # ======================================== #
-# ======== INSTALAR PLAYIT.GG ============ #
+# ======== INSTALAR / ACTUALIZAR PLAYIT ============ #
 # ======================================== #
 
-echo "⬇ Instalando Playit.gg (última versión)..."
+echo "⬇ Instalando o actualizando Playit.gg..."
 
-wget -q "https://github.com/playit-cloud/playit-agent/releases/latest/download/playit-linux-amd64" -O playit
-chmod +x playit
+curl -SsL https://playit-cloud.github.io/ppa/key.gpg | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/playit.gpg >/dev/null
+echo "deb [signed-by=/etc/apt/trusted.gpg.d/playit.gpg] https://playit-cloud.github.io/ppa/data ./" | sudo tee /etc/apt/sources.list.d/playit-cloud.list >/dev/null
+sudo apt update -qq
+sudo apt install -y playit
 
-echo "✅ Playit.gg instalado correctamente."
+echo "✅ Playit.gg instalado o actualizado correctamente."
 echo ""
 echo "🎉 Instalación completa."
 echo ""
@@ -90,7 +89,6 @@ echo "1) Sí"
 echo "2) No"
 
 read -r opcion
-
 
 if [ "$opcion" == "1" ]; then
     echo "Iniciando servidor..."
